@@ -1,0 +1,67 @@
+{
+  "rules": [
+    {
+      "identifier": "my_rule24",
+      "name": "Test String Fields - All Predicates",
+      "predicate": "all",
+      "conditions": [
+        {
+          "field": "from",
+          "predicate": "contains",
+          "value": "apple.com"
+        },
+        {
+          "field": "subject",
+          "predicate": "does_not_contain",
+          "value": "spam"
+        },
+        {
+          "field": "subject",
+          "predicate": "contains",
+          "value": "Last chance"
+        }
+      ],
+      "actions": [
+        {
+          "type": "move_message",
+          "destination": "apple"
+        }
+      ]
+    },
+    {
+      "identifier": "my_rule25",
+      "name": "Test String Fields - All Predicates",
+      "predicate": "any",
+      "conditions": [
+        {
+          "field": "subject",
+          "predicate": "contains",
+          "value": "Funds / Securities Balance"
+        }
+      ],
+      "actions": [
+        {
+          "type": "mark_as_unread"
+        }
+      ]
+    },
+    {
+      "identifier": "my_rule26",
+      "name": "Test String Fields - All Predicates",
+      "predicate": "any",
+      "conditions": [
+        {
+          "field": "subject",
+          "predicate": "contains",
+          "value": "Security alert"
+        }
+      ],
+      "actions": [
+        {
+          "type": "move_message",
+          "destination": "security alerts"
+        }
+      ]
+    }
+  ]
+}
