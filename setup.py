@@ -8,6 +8,7 @@ setup(
         'google-auth-oauthlib==1.0.0',
         'google-auth-httplib2==0.1.0',
         'google-api-python-client==2.86.0',
+        'google-auth==2.23.4',
         'SQLAlchemy==2.0.19',
         'alembic==1.11.1',
         'python-dateutil==2.8.2',
@@ -15,5 +16,6 @@ setup(
         'pydantic==2.6.1',
         'structlog==23.1.0',
     ],
+    python_requires='>=3.8',
 )
 

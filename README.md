@@ -20,29 +20,23 @@ A Python-based email automation system that processes Gmail messages based on cu
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/AshikBN/gmail-rules-engine.git
 cd gmail-rules-engine
 ```
 
-2. Create and activate virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
-
-3. Install dependencies:
+2. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Set up Google Cloud Project and OAuth credentials:
+3. Set up Google Cloud Project and OAuth credentials:
    - Go to Google Cloud Console
    - Create a new project
    - Enable Gmail API
    - Create OAuth 2.0 credentials
    - Download credentials and save it in the .env file as shown
 
-5. Create `.env` file:
+4. Create `.env` file:
 
     #example env file
 
