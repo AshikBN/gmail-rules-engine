@@ -104,9 +104,11 @@ Rules are defined in JSON format. Example:
 
 ## Testing
 
-Run tests with:
+Run unit and integration tests with:
 ```bash
-pytest
+python -m pytest tests/test_rules_engine.py -v
+python -m pytest tests/test_integration.py -v
+
 ```
 
 

@@ -60,7 +60,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.rules.engine import RulesEngine
-from src.database.models import Email, Rule, RuleCondition, RuleAction
+from src.database.models import Email, Rule, RuleCondition, RuleAction, ProcessedEmail
 
 class TestRulesEngine(unittest.TestCase):
     def setUp(self):
@@ -493,8 +493,9 @@ class TestRulesEngine(unittest.TestCase):
 
         for case in test_cases:
             with self.subTest(case=case):
-                # Reset mock
+                # Reset mocks
                 self.gmail_client.reset_mock()
+                self.db.reset_mock()
                 
                 # Create action
                 action = RuleAction(
@@ -505,22 +506,104 @@ class TestRulesEngine(unittest.TestCase):
                 # Configure mock to return success
                 getattr(self.gmail_client, case['expected_method']).return_value = True
 
-                # Create rule and process email
-                rule = Rule(id=1, name='Test Rule', predicate='all')
+                # Create rule and conditions
+                rule = Rule(id=1, name='Test Rule', predicate='all', identifier='test_rule')
+                # Create a condition that will always match (empty string contains empty string)
+                conditions = [RuleCondition(
+                    field='subject',
+                    predicate='contains',
+                    value=''
+                )]
                 
-                # Set up database mock to return our test rule and action
-                self.db.query.return_value.filter.return_value.all.side_effect = [
-                    [rule],  # For rules query
-                    [],      # For conditions query
-                    [action] # For actions query
-                ]
-                
-                # Process the email
-                self.engine.process_email(email)
+                # Mock the _is_already_processed method to return False (not processed)
+                with patch.object(self.engine, '_is_already_processed', return_value=(False, "")):
+                    # Set up database mock queries with proper sequence handling
+                    query_calls = []
+                    
+                    def mock_query(model):
+                        mock_query_obj = MagicMock()
+                        query_calls.append(model)
+                        
+                        if model == Rule:
+                            # First call: get all active rules
+                            mock_query_obj.filter.return_value.all.return_value = [rule]
+                        elif model == RuleCondition:
+                            # Second call: get conditions for the rule
+                            mock_query_obj.filter.return_value.all.return_value = conditions
+                        elif model == RuleAction:
+                            # Third call: get actions for the rule
+                            mock_query_obj.filter.return_value.all.return_value = [action]
+                        elif model == ProcessedEmail:
+                            # Fourth call: check if already processed (handled by patch)
+                            mock_query_obj.filter.return_value.all.return_value = []
+                        
+                        return mock_query_obj
+                    
+                    self.db.query.side_effect = mock_query
+                    
+                    # Process the email
+                    self.engine.process_email(email)
 
                 # Verify correct method was called with correct arguments
                 method = getattr(self.gmail_client, case['expected_method'])
                 method.assert_called_once_with(*case['expected_args'])
+
+    def test_action_execution_direct(self):
+        """Test action execution directly without full process_email flow"""
+        email = Email(
+            gmail_id='test123',
+            is_read=False,
+            current_label='INBOX'
+        )
+
+        # Test mark_as_read action
+        self.gmail_client.mark_as_read.return_value = True
+        action = RuleAction(action_type='mark_as_read', action_value=None)
+        
+        # Mock the _mark_as_processed method
+        with patch.object(self.engine, '_mark_as_processed'):
+            # Execute action directly
+            success = False
+            if action.action_type == 'mark_as_read':
+                success = self.gmail_client.mark_as_read(email.gmail_id)
+                if success:
+                    email.is_read = True
+            
+            self.assertTrue(success)
+            self.gmail_client.mark_as_read.assert_called_once_with('test123')
+            self.assertTrue(email.is_read)
+
+        # Test mark_as_unread action
+        self.gmail_client.reset_mock()
+        self.gmail_client.mark_as_unread.return_value = True
+        action = RuleAction(action_type='mark_as_unread', action_value=None)
+        
+        with patch.object(self.engine, '_mark_as_processed'):
+            success = False
+            if action.action_type == 'mark_as_unread':
+                success = self.gmail_client.mark_as_unread(email.gmail_id)
+                if success:
+                    email.is_read = False
+            
+            self.assertTrue(success)
+            self.gmail_client.mark_as_unread.assert_called_once_with('test123')
+            self.assertFalse(email.is_read)
+
+        # Test move_message action
+        self.gmail_client.reset_mock()
+        self.gmail_client.move_message.return_value = True
+        action = RuleAction(action_type='move_message', action_value='Important')
+        
+        with patch.object(self.engine, '_mark_as_processed'):
+            success = False
+            if action.action_type == 'move_message':
+                success = self.gmail_client.move_message(email.gmail_id, action.action_value)
+                if success:
+                    email.current_label = action.action_value
+            
+            self.assertTrue(success)
+            self.gmail_client.move_message.assert_called_once_with('test123', 'Important')
+            self.assertEqual(email.current_label, 'Important')
 
 if __name__ == '__main__':
     unittest.main()

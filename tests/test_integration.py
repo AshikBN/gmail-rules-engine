@@ -35,7 +35,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.gmail import get_gmail_service, GmailClient
 from src.database import get_db_session, init_db
-from src.database.models import Email, Rule, RuleCondition, RuleAction
+from src.database.models import Email, Rule, RuleCondition, RuleAction, ProcessedEmail
 from src.rules import RulesEngine
 
 class TestGmailIntegration(unittest.TestCase):
@@ -58,6 +58,9 @@ class TestGmailIntegration(unittest.TestCase):
     def setUp(self):
         """Set up each test - runs before each test method"""
         # Clean database
+        self.db.query(ProcessedEmail).delete()
+        self.db.query(RuleAction).delete()
+        self.db.query(RuleCondition).delete()
         self.db.query(Email).delete()
         self.db.query(Rule).delete()
         self.db.commit()
@@ -92,6 +95,7 @@ class TestGmailIntegration(unittest.TestCase):
         # Create test rule
         rule = Rule(
             name="Test Integration Rule",
+            identifier="test_integration_rule",
             predicate="all",
             active=True
         )
@@ -164,6 +168,7 @@ class TestGmailIntegration(unittest.TestCase):
         # Create test rule for moving messages
         rule = Rule(
             name="Test Move Rule",
+            identifier="test_move_rule",
             predicate="any",  # Changed to any since we only have one condition
             active=True
         )
@@ -317,7 +322,7 @@ class TestGmailIntegration(unittest.TestCase):
         print("\nTesting string field conditions...")
         
         # Contains
-        rule = Rule(name="Contains Test", predicate="any", active=True)  # Changed to any since we want to test each condition independently
+        rule = Rule(name="Contains Test", identifier="contains_test", predicate="any", active=True)  # Changed to any since we want to test each condition independently
         self.db.add(rule)
         self.db.flush()
         
